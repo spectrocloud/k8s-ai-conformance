@@ -10,6 +10,8 @@
 
 * [ ] If your product/project is open source, did you include the `repoUrl`?
 
+* [ ] Does the `vendorName` exactly match your organization's name in the [CNCF Landscape](https://landscape.cncf.io/members)?
+
 
 For a full list of requirements, please refer to these sections of the docs: [Contents of the PR](https://github.com/cncf/k8s-ai-conformance/blob/main/instructions.md#contents-of-the-pr), and [Requirements](https://github.com/cncf/k8s-ai-conformance/blob/main/instructions.md#requirements).
 
