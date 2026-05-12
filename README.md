@@ -7,7 +7,7 @@
 [![CNCF Project](https://img.shields.io/badge/CNCF-Project-blue)](https://www.cncf.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.33%20%7C%201.34%20%7C%201.35-326CE5?logo=kubernetes)](https://kubernetes.io/)
 
-[Get Certified](#for-vendors) · [Contribute](#for-contributors) · [FAQ](faq.md) · [Working Group](https://github.com/kubernetes/community/tree/master/wg-ai-conformance)
+[Get Certified](#for-vendors) · [Contribute](#for-contributors) · [FAQ](faq.md) · [AI Conformance Project](https://github.com/kubernetes-sigs/ai-conformance)
 
 If you're here to get certified, start at [For Vendors](#for-vendors). If you're here to help shape the program, jump to [For Contributors](#for-contributors).
 
@@ -89,13 +89,13 @@ The program is a community-led effort to establish a vendor-neutral baseline for
 | **Documentation** | Help improve guides, add examples, fix typos, clarify confusing parts |
 | **Research** | Identify requirements for new AI workload types (especially agentic workloads) |
 | **Testing** | Help develop automated conformance tests |
-| **Discussion** | Participate in working group meetings and design discussions |
+| **Discussion** | Participate in project meetings and design discussions |
 
 #### How to get involved
 
-1. [Open an issue](https://github.com/kubernetes-sigs/wg-ai-conformance/issues) — have an idea, question, or suggestion? Start here
-2. Join the [WG AI Conformance](https://github.com/kubernetes/community/tree/master/wg-ai-conformance) working group
-3. Check out the [planning document](https://docs.google.com/document/d/1hXoSdh9FEs13Yde8DivCYjjXyxa7j4J8erjZPEGWuzc/edit?tab=t.0#heading=h.9j85ih1tpsk) to see what's in progress
+1. [Open an issue](https://github.com/kubernetes-sigs/ai-conformance/issues) — have an idea, question, or suggestion? Start here.
+2. Join the [AI Conformance project meetings](https://github.com/kubernetes/community/tree/master/sig-architecture#meetings).
+3. Check out the [project boards](https://github.com/kubernetes-sigs/ai-conformance/projects?query=is%3Aopen) to see what's in progress.
 
 ---
 
@@ -153,24 +153,24 @@ Pick the one that matches your Kubernetes version:
 
 ## Community
 
-### Working Group
+### Kubernetes Subproject
 
-The [WG AI Conformance](https://github.com/kubernetes/community/tree/master/wg-ai-conformance) working group governs this program and defines the conformance requirements.
+The [Kubernetes AI Conformance](https://github.com/kubernetes-sigs/ai-conformance) project governs this program and defines the conformance requirements.
 
-- **Meetings:** Check the community calendar in the working group repo
-- **Contact:** wg-ai-conformance@kubernetes.io
+- **Meetings:** Check the [AI Conformance project meetings](https://github.com/kubernetes/community/tree/master/sig-architecture#meetings)
+- **Contact:** sig-architecture@kubernetes.io ([mailing list](https://groups.google.com/a/kubernetes.io/g/sig-architecture)) and [Slack channel](https://kubernetes.slack.com/messages/k8s-ai-conformance)
 
 ### Certified Platforms
 
 See all certified platforms in the version directories:
-- [v1.35/](v1.35/)
-- [v1.34/](v1.34/)
-- [v1.33/](v1.33/)
+- [v1.35/](/v1.35/)
+- [v1.34/](/v1.34/)
+- [v1.33/](/v1.33/)
 
 ### Need Help?
 
 - Read the [FAQ](faq.md) first
-- Ask questions in the working group
+- Ask questions in the Kubernetes AI Conformance project
 - [Open an issue](https://github.com/cncf/k8s-ai-conformance/issues)
 - Email conformance@cncf.io
 

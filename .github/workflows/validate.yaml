@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           
       - name: Install dependencies
         run: go mod download
@@ -30,4 +30,4 @@ jobs:
       - name: Validate changed files
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          go run scripts/validate.go ${{ steps.changed-files.outputs.all_changed_files }}
+          go run -tags validate scripts/validate.go ${{ steps.changed-files.outputs.all_changed_files }}

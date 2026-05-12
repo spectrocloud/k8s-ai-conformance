@@ -1,7 +1,10 @@
+//go:build validate
+
 package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,6 +15,88 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+const landscapeURL = "https://raw.githubusercontent.com/cncf/landscape/master/landscape.yml"
+
+const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+// LandscapeData represents the top-level structure of the CNCF landscape YAML
+type LandscapeData struct {
+	Landscape []LandscapeCategory `yaml:"landscape"`
+}
+
+// LandscapeCategory represents a category in the CNCF landscape
+type LandscapeCategory struct {
+	Name          string                 `yaml:"name"`
+	Subcategories []LandscapeSubcategory `yaml:"subcategories"`
+}
+
+// LandscapeSubcategory represents a subcategory within a landscape category
+type LandscapeSubcategory struct {
+	Name  string          `yaml:"name"`
+	Items []LandscapeItem `yaml:"items"`
+}
+
+// LandscapeItem represents an individual item/entry in the landscape
+type LandscapeItem struct {
+	Name string `yaml:"name"`
+}
+
+// memberSuffixes are the parenthetical suffixes appended to member names in the landscape
+var memberSuffixes = []string{" (member)", " (supporter)"}
+
+// fetchCNCFMembers fetches the CNCF landscape YAML and returns a set of member
+// names from the "CNCF Members" category. The returned map keys are the member
+// names with the trailing "(member)"/"(supporter)" suffix stripped.
+func fetchCNCFMembers() (map[string]bool, error) {
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := doRequest(client, http.MethodGet, landscapeURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch CNCF landscape: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch CNCF landscape: HTTP %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CNCF landscape response: %v", err)
+	}
+
+	var data LandscapeData
+	if err := yaml.Unmarshal(body, &data); err != nil {
+		return nil, fmt.Errorf("failed to parse CNCF landscape YAML: %v", err)
+	}
+
+	members := make(map[string]bool)
+	found := false
+	for _, category := range data.Landscape {
+		if category.Name == "CNCF Members" {
+			found = true
+			for _, sub := range category.Subcategories {
+				for _, item := range sub.Items {
+					name := item.Name
+					for _, suffix := range memberSuffixes {
+						name = strings.TrimSuffix(name, suffix)
+					}
+					name = strings.TrimSpace(name)
+					if name != "" {
+						members[name] = true
+					}
+				}
+			}
+			break
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("could not find 'CNCF Members' category in landscape data")
+	}
+
+	return members, nil
+}
 
 // Requirement represents a single checklist item
 type Requirement struct {
@@ -57,13 +142,22 @@ var metadataFields = map[string]bool{
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run scripts/validate.go <path_to_product.yaml> ...")
+		fmt.Println("Usage: go run -tags validate scripts/validate.go <path_to_product.yaml> ...")
 		os.Exit(1)
 	}
 
+	// Fetch CNCF member list once for all validations
+	fmt.Println("Fetching CNCF member list from landscape...")
+	cncfMembers, err := fetchCNCFMembers()
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Loaded %d CNCF members from landscape.\n", len(cncfMembers))
+
 	success := true
 	for _, path := range os.Args[1:] {
-		if !validateProduct(path) {
+		if !validateProduct(path, cncfMembers) {
 			success = false
 		}
 	}
@@ -73,7 +167,7 @@ func main() {
 	}
 }
 
-func validateProduct(path string) bool {
+func validateProduct(path string, cncfMembers map[string]bool) bool {
 	fmt.Printf("Validating %s...\n", path)
 
 	// Extract version
@@ -171,6 +265,20 @@ func validateProduct(path string) bool {
 					}
 				}(strVal, field)
 			}
+		}
+	}
+
+	// Validate CNCF Membership
+	if product.Metadata != nil {
+		vendorName := ""
+		if v, ok := product.Metadata["vendorName"]; ok {
+			vendorName, _ = v.(string)
+		} else if v, ok := product.Metadata["vendor_name"]; ok {
+			vendorName, _ = v.(string)
+		}
+		vendorName = strings.TrimSpace(vendorName)
+		if vendorName != "" && !cncfMembers[vendorName] {
+			addError(fmt.Sprintf("vendorName '%s' does not match any CNCF member in the CNCF Landscape. The vendorName must exactly match the organization name listed at https://landscape.cncf.io/members", vendorName))
 		}
 	}
 
@@ -274,14 +382,14 @@ func validateURL(urlStr string) error {
 		Timeout: 30 * time.Second,
 	}
 	// Try HEAD first
-	resp, err := client.Head(urlStr)
+	resp, err := doRequest(client, http.MethodHead, urlStr)
 	if err == nil && resp.StatusCode < 400 {
 		resp.Body.Close()
 		return nil
 	}
 
 	// If HEAD fails or returns error, try GET
-	resp, err = client.Get(urlStr)
+	resp, err = doRequest(client, http.MethodGet, urlStr)
 	if err != nil {
 		return err
 	}
@@ -290,6 +398,19 @@ func validateURL(urlStr string) error {
 		return fmt.Errorf("status code %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// doRequest creates an HTTP request with browser-like headers to avoid being
+// blocked by WAFs/bot-protection that reject Go's default User-Agent.
+func doRequest(client *http.Client, method, url string) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	return client.Do(req)
 }
 
 func toSnakeCase(str string) string {
